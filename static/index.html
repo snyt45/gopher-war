@@ -3,5 +3,16 @@
     <meta charset="utf-8">
   </head>
   <body>
+    <script>
+      var url = "ws://" + window.location.host + "/ws";
+      initWebsocket();
+
+      function initWebsocket() {
+        ws = new WebSocket(url);
+        ws.onopen = function(event) {
+          console.log("WebSocket connected");
+        };
+      }
+    </script>
   </body>
 </html>
