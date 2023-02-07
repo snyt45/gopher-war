@@ -1,21 +1,23 @@
-import { testFunc } from './config'
+import { WebSocketClient, InitMsg } from "./WebSocketClient";
+import { config } from "./config";
 
 (function main(){
-  testFunc();
   const url = "ws://" + window.location.host + "/ws"
-  // WebSocket接続を作成(/wsにリクエストが飛ぶ)
-  const ws = new WebSocket(url)
+  const ws = new WebSocket(url) // WebSocket接続開始
+  const client = new WebSocketClient(ws)
+  client.addOnOpen()
+  client.addOnMessage()
 
-  // 接続通知
-  ws.onopen = function() {
-    console.log("WebSocket connected")
-    // サーバーにメッセージ送信
-    ws.send("test")
-  }
-
-  // メッセージ受信
-  ws.onmessage = function(event) {
-    console.log("WebSocket receive message")
-    console.log(event)
-  }
+  // WebSocket接続が確立されるまで試行する
+  const timerId = setInterval(() => {
+    if (client.isOpened()) {
+      const initMsg: InitMsg = {
+        type: 'init',
+        userName: 'testUser',
+        config: JSON.stringify(config)
+      }
+      client.sendMessage(initMsg)
+      clearInterval(timerId)
+    }
+  }, 25)
 })();

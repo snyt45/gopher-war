@@ -1,21 +1,23 @@
-define(["require", "exports", "./config"], function (require, exports, config_1) {
+define(["require", "exports", "./WebSocketClient", "./config"], function (require, exports, WebSocketClient_1, config_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     (function main() {
-        (0, config_1.testFunc)();
-        var url = "ws://" + window.location.host + "/ws";
-        // WebSocket接続を作成(/wsにリクエストが飛ぶ)
-        var ws = new WebSocket(url);
-        // 接続通知
-        ws.onopen = function () {
-            console.log("WebSocket connected");
-            // サーバーにメッセージ送信
-            ws.send("test");
-        };
-        // メッセージ受信
-        ws.onmessage = function (event) {
-            console.log("WebSocket receive message");
-            console.log(event);
-        };
+        const url = "ws://" + window.location.host + "/ws";
+        const ws = new WebSocket(url); // WebSocket接続開始
+        const client = new WebSocketClient_1.WebSocketClient(ws);
+        client.addOnOpen();
+        client.addOnMessage();
+        // WebSocket接続が確立されるまで試行する
+        const timerId = setInterval(() => {
+            if (client.isOpened()) {
+                const initMsg = {
+                    type: 'init',
+                    userName: 'testUser',
+                    config: JSON.stringify(config_1.config)
+                };
+                client.sendMessage(initMsg);
+                clearInterval(timerId);
+            }
+        }, 25);
     })();
 });
