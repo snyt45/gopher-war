@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/olahol/melody"
@@ -61,6 +62,7 @@ func main() {
 	r := gin.Default()
 	m := melody.New()
 
+	lock := new(sync.Mutex)
 	counter := 0
 	targets := make(map[*melody.Session]*TargetInfo)
 	bombs := make(map[*melody.Session]*BulletInfo)
@@ -82,6 +84,7 @@ func main() {
 
 	// セッション開始
 	m.HandleConnect(func(s *melody.Session) {
+		lock.Lock()
 		for _, target := range targets {
 			message := fmt.Sprintf("show %s %d %d %d %s %s", target.ID, target.X, target.Y, target.LIFE, target.NAME, target.CHARGE)
 			s.Write([]byte(message))
@@ -94,10 +97,12 @@ func main() {
 		message := fmt.Sprintf("appear %s", id)
 		s.Write([]byte(message))
 		counter++
+		lock.Unlock()
 	})
 
 	// メッセージ受信
 	m.HandleMessage(func(s *melody.Session, msg []byte) {
+		lock.Lock()
 		params := strings.Split(string(msg), separator)
 		fmt.Printf("%#v\n", params)
 		err := json.Unmarshal([]byte(string(params[2])), &config)
@@ -107,6 +112,7 @@ func main() {
 			panic(message)
 		}
 		fmt.Printf("%#v\n", config)
+		lock.Unlock()
 	})
 
 	r.Run()
