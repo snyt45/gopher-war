@@ -16,8 +16,8 @@ define(["require", "exports"], function (require, exports) {
             };
         }
         addOnMessage() {
-            this.ws.onmessage = () => {
-                console.log("WebSocket receive message");
+            this.ws.onmessage = (event) => {
+                console.log("WebSocket receive message", event.data);
             };
         }
         sendMessage(msg) {

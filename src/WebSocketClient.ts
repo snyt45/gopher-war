@@ -26,8 +26,8 @@ export class WebSocketClient {
   }
 
   addOnMessage() {
-    this.ws.onmessage = () => {
-      console.log("WebSocket receive message")
+    this.ws.onmessage = (event: MessageEvent<string>) => {
+      console.log("WebSocket receive message", event.data)
     }
   }
 

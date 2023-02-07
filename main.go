@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -11,6 +12,33 @@ import (
 )
 
 const separator = "\t"
+
+// TargetInfo model
+type TargetInfo struct {
+	ID     string
+	NAME   string
+	CHARGE string
+	X      int
+	Y      int
+	LIFE   int
+	SIZE   int
+}
+
+// BulletInfo model
+type BulletInfo struct {
+	ID        string
+	X         int
+	Y         int
+	LIFE      int
+	MAXLIFE   int
+	DIRECTION int
+	DAMAGE    int
+	SPEED     int
+	FIRERANGE int
+	SIZE      int
+	FIRE      bool
+	SPECIAL   bool
+}
 
 // Config model
 type Config struct {
@@ -33,6 +61,10 @@ func main() {
 	r := gin.Default()
 	m := melody.New()
 
+	counter := 0
+	targets := make(map[*melody.Session]*TargetInfo)
+	bombs := make(map[*melody.Session]*BulletInfo)
+	missiles := make(map[*melody.Session]*BulletInfo)
 	config := Config{}
 
 	r.Static("/assets", "./dist/assets")
@@ -46,6 +78,22 @@ func main() {
 	r.GET("/ws", func(c *gin.Context) {
 		// WebSocket接続をmelodyインスタンスが処理する
 		m.HandleRequest(c.Writer, c.Request)
+	})
+
+	// セッション開始
+	m.HandleConnect(func(s *melody.Session) {
+		for _, target := range targets {
+			message := fmt.Sprintf("show %s %d %d %d %s %s", target.ID, target.X, target.Y, target.LIFE, target.NAME, target.CHARGE)
+			s.Write([]byte(message))
+		}
+		// append
+		id := strconv.Itoa(counter)
+		targets[s] = &TargetInfo{ID: id, NAME: "", CHARGE: "none"}
+		bombs[s] = &BulletInfo{ID: id, SPECIAL: false}
+		missiles[s] = &BulletInfo{ID: id, SPECIAL: true}
+		message := fmt.Sprintf("appear %s", id)
+		s.Write([]byte(message))
+		counter++
 	})
 
 	// メッセージ受信
