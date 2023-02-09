@@ -58,17 +58,7 @@ type Config struct {
 	DmgSize      int `json:"dmgSize"`
 }
 
-func main() {
-	r := gin.Default()
-	m := melody.New()
-
-	lock := new(sync.Mutex)
-	counter := 0
-	targets := make(map[*melody.Session]*TargetInfo)
-	bombs := make(map[*melody.Session]*BulletInfo)
-	missiles := make(map[*melody.Session]*BulletInfo)
-	config := Config{}
-
+func initRouter(r *gin.Engine, m *melody.Melody) {
 	r.Static("/assets", "./dist/assets")
 	r.LoadHTMLFiles("dist/index.html")
 
@@ -81,39 +71,90 @@ func main() {
 		// WebSocket接続をmelodyインスタンスが処理する
 		m.HandleRequest(c.Writer, c.Request)
 	})
+}
+
+func initHandleRequest(m *melody.Melody) {
+	lock := new(sync.Mutex)
+	counter := 0
+	targets := make(map[*melody.Session]*TargetInfo)
+	bombs := make(map[*melody.Session]*BulletInfo)
+	missiles := make(map[*melody.Session]*BulletInfo)
 
 	// セッション開始
 	m.HandleConnect(func(s *melody.Session) {
 		lock.Lock()
+
+		// セッション開始した旨を通知する
+		session_start_message := "Session Start! Welcome to gopaher-war"
+		s.Write([]byte(session_start_message))
+
+		// 他の機体が参加している場合に他の機体情報を通知する
 		for _, target := range targets {
-			message := fmt.Sprintf("show %s %d %d %d %s %s", target.ID, target.X, target.Y, target.LIFE, target.NAME, target.CHARGE)
-			s.Write([]byte(message))
+			other_client_info_message := fmt.Sprintf(
+				"Other Client Info: ID %s, X %d, Y %d, LIFE %d, NAME %s, CHARGE %s",
+				target.ID, target.X, target.Y, target.LIFE, target.NAME, target.CHARGE,
+			)
+			s.Write([]byte(other_client_info_message))
 		}
-		// append
+
+		// 自機の情報、ボム、ミサイルの情報を詰める
 		id := strconv.Itoa(counter)
 		targets[s] = &TargetInfo{ID: id, NAME: "", CHARGE: "none"}
 		bombs[s] = &BulletInfo{ID: id, SPECIAL: false}
 		missiles[s] = &BulletInfo{ID: id, SPECIAL: true}
-		message := fmt.Sprintf("appear %s", id)
-		s.Write([]byte(message))
+
+		// 自機の情報を通知する
+		my_client_info_message := fmt.Sprintf(
+			"My Client Info: ID %s, X %d, Y %d, LIFE %d, NAME %s, CHARGE %s",
+			id, targets[s].X, targets[s].Y, targets[s].LIFE, targets[s].NAME, targets[s].CHARGE,
+		)
+		s.Write([]byte(my_client_info_message))
+
+		// IDをカウントアップ
 		counter++
+
 		lock.Unlock()
 	})
 
 	// メッセージ受信
 	m.HandleMessage(func(s *melody.Session, msg []byte) {
 		lock.Lock()
+
+		// パラメータ分割
 		params := strings.Split(string(msg), separator)
-		fmt.Printf("%#v\n", params)
-		err := json.Unmarshal([]byte(string(params[2])), &config)
-		if err != nil {
-			message := fmt.Sprintf("Failed to configure by json [%s]", string(msg))
-			fmt.Println(message)
-			panic(message)
+		for i, param := range params {
+			fmt.Printf("[debug] params[%d] => %T %#v\n", i, param, param)
 		}
-		fmt.Printf("%#v\n", config)
+
+		switch msgType := params[0]; msgType {
+		case "init":
+			initConfig(params[1], params[2], s)
+		}
+
 		lock.Unlock()
 	})
+}
 
+func initConfig(userName string, configJson string, s *melody.Session) {
+	config := Config{}
+	// mapping JSON to Go
+	err := json.Unmarshal([]byte(configJson), &config)
+	if err != nil {
+		fmt.Printf("Failed to configure by json %s", configJson)
+		panic(config)
+	}
+	// Configを設定した旨を通知する
+	message := fmt.Sprintf("initConfig: %#v", config)
+	s.Write([]byte(message))
+}
+
+func main() {
+	r := gin.Default()
+	m := melody.New()
+
+	initRouter(r, m)
+	initHandleRequest(m)
+
+	// run server port 8080
 	r.Run()
 }
