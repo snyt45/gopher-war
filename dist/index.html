@@ -7,6 +7,61 @@
       integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg=="
       crossorigin="anonymous"
     ></script>
+
+		<style>
+		body {
+			cursor: none;
+			overflow: hidden;
+			background: url('./assets/img/background.png') no-repeat;
+			background-size: cover;
+		}
+		.body-gameover {
+			cursor: default;
+			background-image: url('./assets/img/gameover.png');
+			background-size: contain;
+		}
+		.target {
+			background-image: url('./assets/img/target.png');
+			width: 100px;
+			height: 100px;
+			background-size: cover;
+			position: absolute;
+			left: 0px;
+			top: 0px;
+		}
+		.target-name {
+			position: absolute;
+			bottom: -20px;
+			text-align: center;
+			color: blueviolet;
+		}
+		.bomb {
+			background-image: url('./assets/img/bomb.png');
+			width: 30px;
+			height: 30px;
+			background-size: cover;
+			position: absolute;
+			left: 0px;
+			top: 0px;
+		}
+		.missile {
+			background-image: url('./assets/img/missile.png');
+			width: 50px;
+			height: 50px;
+			background-size: cover;
+			position: absolute;
+			left: 0px;
+			top: 0px;
+		}
+		.msg {
+			font-size: 20px;
+			color: red;
+		}
+		@keyframes background-animation {
+			from {background-position: 0 0;}
+			to {background-position: 100% 0;}
+		}
+		</style>
   </head>
   <body>
   </body>
